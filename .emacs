@@ -51,7 +51,8 @@
      ("account" "ledger -f %(ledger-file) reg %(account)")
      ("weekly" "ledger -f %(ledger-file) --budget --weekly register expenses:Lebensmittel")
      ("gnuplot" "/Users/phil/ledger/contrib/report -f %(ledger-file) -j reg Expenses")
-     ("account-clear" "ledger -f %(ledger-file) --cleared reg %(account)"))))
+     ("account-clear" "ledger -f %(ledger-file) --cleared reg %(account)")
+     ("get-comms" "sh /Users/phil/Dropbox/Schnucki/get_currs.sh"))))
  '(org-agenda-custom-commands
    (quote
     (("W" "Weekly Meeting"
@@ -358,6 +359,7 @@
                   '("my-letter"
                     "\\documentclass\{scrlttr2\}
      \\usepackage[english]{babel}
+     \\usepackage[scaled=0.9]{helvet}
      \\setkomavar{frombank}{(1234)\\,567\\,890}
      \[DEFAULT-PACKAGES]
      \[PACKAGES]
@@ -395,64 +397,8 @@
 (add-hook 'org-mode-hook (lambda ()
   (define-key org-mode-map (kbd "C-c g") 'org-mac-grab-link)))
 
-;; Kanban-Analysis
-(defun sacha/org-count-tasks-by-status ()
-  (interactive)
-  (let ((counts (make-hash-table :test 'equal))
-        (today (format-time-string "%Y-%m-%d" (current-time)))
-        values output)
-    (org-map-entries
-     (lambda ()
-       (let* ((status (elt (org-heading-components) 2)))
-         (when status
-           (puthash status (1+ (or (gethash status counts) 0)) counts))))
-     nil
-     'agenda)
-    (setq values (mapcar (lambda (x)
-                           (or (gethash x counts) 0))
-                         '("QUEUE" "URGENT" "IN PROGRESS" "PENDING" "DONE" "ABANDONED" "FAILED")))
-    (setq output
-          (concat "| " today " | "
-                  (mapconcat 'number-to-string values " | ")
-                  " | "
-                  (number-to-string (apply '+ values))
-                  " |"))
-    (if (called-interactively-p 'any)
-        (insert output)
-      output)))
-(sacha/org-count-tasks-by-status)
-
-;; WIP-Limits realized
- (defun org-count-todos-in-state (state)
-   (let ((count 0))
-     (org-scan-tags (lambda ()
-                      (when (string= (org-get-todo-state) state)
-                        (setq count (1+ count))))
-                    t t)
-     count))
-
- (defvar org-wip-limit 5  "Work-in-progress limit")
- (defvar org-wip-state "URGENT")
- (defvar org-wip-limit2 5  "Work-in-progress limit")
- (defvar org-wip-state2 "IN PROGRESS")
-
-;; (setq org-wip-limit2 5)
-
-(defun org-block-wip-limit (change-plist)
-   (catch 'dont-block
-     (when (or (not (eq (plist-get change-plist :type) 'todo-state-change))
-               (and (not (string= (plist-get change-plist :to) org-wip-state))
- 	            (not (string= (plist-get change-plist :to) org-wip-state2))))
-       (throw 'dont-block t))
-     (when (and (string= (plist-get change-plist :to) org-wip-state)
-	    (>= (org-count-todos-in-state org-wip-state) org-wip-limit ))
-       (setq org-block-entry-blocking (format "WIP limit: %s" org-wip-state))
-       (throw 'dont-block nil))
-     (when (and (string= (plist-get change-plist :to) org-wip-state2)
-	   (>= (org-count-todos-in-state org-wip-state2) org-wip-limit2 ))
-       (setq org-block-entry-blocking (format "WIP limit: %s" org-wip-state2))
-       (throw 'dont-block nil))
-     t)) ; do not block
-
-(remove-hook 'org-blocker-hook #'org-block-wip-limit)
-(add-hook 'org-blocker-hook #'org-block-wip-limit)
+;;Xelatex
+(eval-after-load "tex"
+  '(add-to-list 'TeX-command-list
+     		'("XeLaTeX" "xelatex -interaction=nonstopmode %s"
+		  TeX-run-command t t :help "Run xelatex") t))
